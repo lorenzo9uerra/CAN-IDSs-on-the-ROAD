@@ -36,6 +36,17 @@ class FrameDataset(Dataset):
         return torch.tensor(self.X[index]), torch.tensor(self.y[index])
 
 
+def road_file_pattern(attack_name):
+    # ROAD capture files are named e.g. "max_speedometer_attack_1.csv" and
+    # "max_speedometer_attack_1_masquerade.csv", so the capture index sits
+    # before the "_masquerade" suffix.
+    if "masquerade" not in attack_name:
+        regex = attack_name + r".{0,2}\.csv"
+    else:
+        regex = attack_name.split("_masquerade")[0] + r".{0,2}_masquerade\.csv"
+    return re.compile(regex)
+
+
 def pad_id(id_bits):
     while len(id_bits) != 29:
         id_bits.insert(0, 0)
@@ -78,8 +89,7 @@ def load_binary_road(label, labels_dict, test_percent):
     dfs = []
     for file in os.listdir(directory):
         filename = os.fsdecode(file)
-        regex = labels_dict[label] + r".{0,2}\.csv"
-        pattern = re.compile(regex)
+        pattern = road_file_pattern(labels_dict[label])
         if pattern.match(filename):
             # print(filename)
             dfs.append(
@@ -305,14 +315,7 @@ def load_frames_road(label, labels_dict, test_percent):
         dfs = []
         for file in os.listdir(directory):
             filename = os.fsdecode(file)
-            if "masquerade" not in labels_dict[label]:
-                regex = labels_dict[label] + r".{0,2}\.csv"
-            else:
-                regex = (
-                    labels_dict[label].split("_masquerade")[0]
-                    + r".{0,2}_masquerade\.csv"
-                )
-            pattern = re.compile(regex)
+            pattern = road_file_pattern(labels_dict[label])
             if pattern.match(filename):
                 dfs.append(
                     pd.read_csv(
